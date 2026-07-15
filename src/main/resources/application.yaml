@@ -1,7 +1,14 @@
 # 服务端口
 server:
   port: 8080
-
+# Canal配置
+canal:
+  host: 127.0.0.1
+  port: 11111
+  destination: example # canal默认实例名，无需修改
+  # 这是 Java 客户端登录 Canal Server 的账号，不是 Canal 连接 MySQL 的 dbUsername/dbPassword。
+  username: ${CANAL_USERNAME:canal}
+  password: ${CANAL_PASSWORD:canal}
 # 数据库配置 druid
 spring:
   datasource:

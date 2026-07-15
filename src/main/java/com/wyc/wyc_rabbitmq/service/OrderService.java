@@ -55,7 +55,7 @@ public class OrderService {
         outbox.setSendStatus("WAIT");
         outbox.setRetryCount(0);
         outboxMapper.insert(outbox);
-
+        System.out.println("您的订单已创建，单号：" + orderNo);
         // 关键点：事务内部没有任何MqSendUtil.sendMsg调用
     }
 }

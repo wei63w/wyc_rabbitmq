@@ -11,8 +11,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-@Component
-@EnableScheduling
+//@Component
+//@EnableScheduling
 public class OutboxTask {
 
     @Resource
