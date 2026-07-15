@@ -32,6 +32,46 @@ Windows PowerShell：
 .\mvnw.cmd spring-boot:run
 ```
 
+## Canal 本地监听配置
+
+项目可使用 Canal 监听 MySQL 的 `test.t_outbox` 新增记录，再异步投递 RabbitMQ。
+
+### 创建 Canal Server 容器
+
+在 Docker Desktop（MySQL 运行在本机）中，使用 `host.docker.internal` 访问 MySQL。不要将空目录挂载到 `/home/admin/canal-server/conf`，否则会覆盖镜像自带的 `canal.properties` 和 `logback.xml`，造成 Canal 无法启动。
+
+```powershell
+docker rm -f canal-server
+
+docker run -d --name canal-server `
+  -p 11111:11111 `
+  -v /data/canal/logs:/home/admin/canal-server/logs `
+  -e canal.instance.master.address=host.docker.internal:3306 `
+  -e canal.instance.dbUsername=canal `
+  -e canal.instance.dbPassword=Canal@123456 `
+  -e 'canal.instance.filter.regex=test\.t_outbox' `
+  -e canal.user=canal `
+  -e canal.passwd=E3619321C1A937C46A0D8BD1DAC39F93B27D4458 `
+  canal/canal-server:v1.1.7
+```
+
+`canal.instance.dbUsername` 和 `canal.instance.dbPassword` 是 Canal Server 连接 MySQL 的账号；`canal.user` 与 `canal.passwd` 则是 Java 客户端连接 Canal Server 的账号。Java 侧默认使用明文 `canal/canal`；其中 `E3619321C1A937C46A0D8BD1DAC39F93B27D4458` 是服务端所需的 `canal` 密码摘要。
+
+### 创建并授权 MySQL 用户
+
+使用 MySQL `root` 账号执行以下命令。Canal 需要读取表结构并订阅 binlog，缺少 `performance_schema` 的读取权限会导致 instance 无法启动。
+
+```sql
+CREATE USER IF NOT EXISTS 'canal'@'%' IDENTIFIED BY 'Canal@123456';
+
+GRANT SELECT, REPLICATION SLAVE, REPLICATION CLIENT
+ON *.* TO 'canal'@'%';
+
+FLUSH PRIVILEGES;
+```
+
+MySQL 还需要启用 binlog，并设置 `binlog_format=ROW` 和非零的 `server_id`。完成配置后，使用 `docker exec canal-server ps -ef` 确认存在 Canal Java 进程，再启动本项目。
+
 ## `messageId` 消费报错说明
 
 若消费者出现以下异常：
